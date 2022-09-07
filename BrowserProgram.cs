@@ -164,6 +164,40 @@ namespace MetroidBrowser
 		{
 			switch (e.Node?.Name)
 			{
+				case "area":
+					var area = (int)e.Node.Tag;
+
+					var roomCount = (RomMap.AreaStructures[area] - RomMap.AreaRooms[area]) >> 1;
+					var structuresCount = (RomMap.AreaSpecialItems[area] - RomMap.AreaStructures[area]) >> 1;
+
+					var roomsNode = new TreeNode("Rooms");
+
+					for (var x = 0; x < roomCount; x++)
+					{
+						var roomNode = new TreeNode(x.ToString("X2"));
+						roomNode.Name = "room";
+						roomNode.Tag = x;
+
+						roomsNode.Nodes.Add(roomNode);
+					}
+
+					var structuresNode = new TreeNode("Structures");
+
+					for (var x = 0; x < structuresCount; x++)
+					{
+						var structureNode = new TreeNode(x.ToString("X2"));
+						structureNode.Name = "structure";
+						structureNode.Tag = x;
+
+						structuresNode.Nodes.Add(structureNode);
+					}
+
+					e.Node.Nodes.Clear();
+					e.Node.Nodes.Add(roomsNode);
+					e.Node.Nodes.Add(structuresNode);
+
+					break;
+
 				case "song":
 					var song = (int)e.Node.Tag;
 
@@ -225,6 +259,60 @@ namespace MetroidBrowser
 		{
 			switch (e.Node?.Name)
 			{
+				case "map":
+					CreateMapImage();
+
+					Form.SongPanel.Hide();
+					Form.ImagePanel.Show();
+					break;
+
+				case "area":
+					var area = (int)e.Node.Tag;
+
+					Form.PropertyGrid.SelectedObject = new
+					{
+						Name = RomMap.AreaNames[area]
+					};
+
+					Form.SongPanel.Hide();
+					Form.ImagePanel.Hide();
+					break;
+
+				case "room":
+					var room = (int)e.Node.Tag;
+					area = (int)e.Node.Parent.Parent.Tag;
+
+					RomMap.LoadRoom(area, room);
+
+					Form.PropertyGrid.SelectedObject = new
+					{
+						Room.Color,
+						Room.Doors,
+						Room.ObjectColors,
+						Room.ObjectStructures,
+						Room.ObjectLocations,
+						Room.EnemySprites,
+						Room.EnemyTypes,
+						Room.EnemyLocations
+					};
+
+					break;
+
+				case "structure":
+					var structure = (int)e.Node.Tag;
+					area = (int)e.Node.Parent.Parent.Tag;
+
+					RomMap.LoadStructure(area, structure);
+
+					Form.PropertyGrid.SelectedObject = new
+					{
+						Structure.Columns,
+						Rows = $"{Structure.Tiles.Length / Structure.Columns} (+{Structure.Tiles.Length % Structure.Columns})",
+						Structure.Tiles
+					};
+
+					break;
+
 				case "song":
 					var song = (int)e.Node.Tag;
 
@@ -252,27 +340,75 @@ namespace MetroidBrowser
 					Form.TriangleLabel.Text = string.Empty;
 					Form.NoiseLabel.Text = string.Empty;
 
+					Form.ImagePanel.Hide();
 					Form.SongPanel.Show();
-
 					break;
 
 				default:
+					Form.ImagePanel.Hide();
 					Form.SongPanel.Hide();
 					break;
 			}
+		}
+
+		private static void CreateMapImage()
+		{
+			var bitmap = new Bitmap(32 * 32, 32 * 32);
+
+			using var graphics = Graphics.FromImage(bitmap);
+			graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+			graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+			var font = SystemFonts.DialogFont;
+			var brush = SystemBrushes.ControlText;
+
+			for (int y = 0; y < RomMap.MapHeight; y++)
+			{
+				for (int x = 0; x < RomMap.MapWidth; x++)
+				{
+					graphics.DrawString(Map.Rooms[x, y].ToString("X2"), font, brush, x * 32, y * 32);
+				}
+			}
+
+			Form.PictureBox.Image = bitmap;
 		}
 
 		private static void LoadRom()
 		{
 			Rom.Contents = Properties.Resources.Rom;
 
+			RomMap.Load();
 			RomSongs.Load();
 		}
 
 		private static void AddRomNode()
 		{
+			// ROM Node
 			var romNode = new TreeNode("Metroid (U)");
 
+			// Maps
+			var mapNode = new TreeNode("Map");
+			mapNode.Name = "map";
+
+			var areasNode = new TreeNode("Areas");
+			areasNode.Name = "areas";
+
+			for (var x = 0; x < RomMap.AreaCount; x++)
+			{
+				var areaNode = new TreeNode(RomMap.AreaNames[x]);
+				areaNode.Name = "area";
+				areaNode.Tag = x;
+
+				areaNode.Nodes.Add("Loading...");
+
+				areasNode.Nodes.Add(areaNode);
+			}
+
+			mapNode.Nodes.Add(areasNode);
+
+			romNode.Nodes.Add(mapNode);
+
+			// Songs
 			var songsNode = new TreeNode("Songs");
 
 			for (var song = 0; song < RomSongs.SongCount; song++)

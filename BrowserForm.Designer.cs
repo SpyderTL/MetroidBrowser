@@ -45,6 +45,8 @@
 			this.label1 = new System.Windows.Forms.Label();
 			this.SongNameLabel = new System.Windows.Forms.Label();
 			this.PlayButton = new System.Windows.Forms.Button();
+			this.ImagePanel = new System.Windows.Forms.Panel();
+			this.PictureBox = new System.Windows.Forms.PictureBox();
 			((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
 			this.splitContainer1.Panel1.SuspendLayout();
 			this.splitContainer1.Panel2.SuspendLayout();
@@ -53,6 +55,8 @@
 			this.PropertyTabPage.SuspendLayout();
 			this.PreviewTabPage.SuspendLayout();
 			this.SongPanel.SuspendLayout();
+			this.ImagePanel.SuspendLayout();
+			((System.ComponentModel.ISupportInitialize)(this.PictureBox)).BeginInit();
 			this.SuspendLayout();
 			// 
 			// splitContainer1
@@ -113,6 +117,7 @@
 			// 
 			// PreviewTabPage
 			// 
+			this.PreviewTabPage.Controls.Add(this.ImagePanel);
 			this.PreviewTabPage.Controls.Add(this.SongPanel);
 			this.PreviewTabPage.Location = new System.Drawing.Point(4, 4);
 			this.PreviewTabPage.Name = "PreviewTabPage";
@@ -149,10 +154,10 @@
 			this.NoiseLabel.TabIndex = 9;
 			this.NoiseLabel.Text = "[Note]";
 			// 
-			// TriagleLabel
+			// TriangleLabel
 			// 
 			this.TriangleLabel.Location = new System.Drawing.Point(215, 39);
-			this.TriangleLabel.Name = "TriagleLabel";
+			this.TriangleLabel.Name = "TriangleLabel";
 			this.TriangleLabel.Size = new System.Drawing.Size(100, 25);
 			this.TriangleLabel.TabIndex = 8;
 			this.TriangleLabel.Text = "[Note]";
@@ -229,6 +234,27 @@
 			this.PlayButton.Text = "4";
 			this.PlayButton.UseVisualStyleBackColor = true;
 			// 
+			// ImagePanel
+			// 
+			this.ImagePanel.AutoScroll = true;
+			this.ImagePanel.Controls.Add(this.PictureBox);
+			this.ImagePanel.Dock = System.Windows.Forms.DockStyle.Fill;
+			this.ImagePanel.Location = new System.Drawing.Point(3, 3);
+			this.ImagePanel.Margin = new System.Windows.Forms.Padding(0);
+			this.ImagePanel.Name = "ImagePanel";
+			this.ImagePanel.Size = new System.Drawing.Size(653, 682);
+			this.ImagePanel.TabIndex = 2;
+			// 
+			// PictureBox
+			// 
+			this.PictureBox.Location = new System.Drawing.Point(3, 2);
+			this.PictureBox.Margin = new System.Windows.Forms.Padding(0);
+			this.PictureBox.Name = "PictureBox";
+			this.PictureBox.Size = new System.Drawing.Size(100, 100);
+			this.PictureBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
+			this.PictureBox.TabIndex = 2;
+			this.PictureBox.TabStop = false;
+			// 
 			// BrowserForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
@@ -245,6 +271,9 @@
 			this.PropertyTabPage.ResumeLayout(false);
 			this.PreviewTabPage.ResumeLayout(false);
 			this.SongPanel.ResumeLayout(false);
+			this.ImagePanel.ResumeLayout(false);
+			this.ImagePanel.PerformLayout();
+			((System.ComponentModel.ISupportInitialize)(this.PictureBox)).EndInit();
 			this.ResumeLayout(false);
 
 		}
@@ -268,5 +297,7 @@
 		public Label Square2Label;
 		public Label SquareLabel;
 		public Button PlayButton;
+		public Panel ImagePanel;
+		public PictureBox PictureBox;
 	}
 }

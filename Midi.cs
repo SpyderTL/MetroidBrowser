@@ -28,7 +28,7 @@ namespace MetroidBrowser
 
 		static IntPtr Handle;
 
-		public static int Device;
+		public static int Device = 0;
 
 		public static Tuple<uint, string>[] Devices = new Tuple<uint, string>[0];
 

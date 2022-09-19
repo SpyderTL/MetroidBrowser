@@ -1,5 +1,8 @@
 ﻿using System.ComponentModel.Design;
 using System.ComponentModel;
+using System.Drawing.Drawing2D;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using System.Windows.Forms;
 
 namespace MetroidBrowser
 {
@@ -174,7 +177,7 @@ namespace MetroidBrowser
 
 					for (var x = 0; x < roomCount; x++)
 					{
-						var roomNode = new TreeNode(x.ToString("X2"));
+						var roomNode = new TreeNode(x.ToString());
 						roomNode.Name = "room";
 						roomNode.Tag = x;
 
@@ -185,7 +188,7 @@ namespace MetroidBrowser
 
 					for (var x = 0; x < structuresCount; x++)
 					{
-						var structureNode = new TreeNode(x.ToString("X2"));
+						var structureNode = new TreeNode(x.ToString());
 						structureNode.Name = "structure";
 						structureNode.Tag = x;
 
@@ -269,20 +272,26 @@ namespace MetroidBrowser
 				case "area":
 					var area = (int)e.Node.Tag;
 
+					RomGraphics.LoadArea(area);
+					CreateAreaImage();
+
 					Form.PropertyGrid.SelectedObject = new
 					{
 						Name = RomMap.AreaNames[area]
 					};
 
 					Form.SongPanel.Hide();
-					Form.ImagePanel.Hide();
+					Form.ImagePanel.Show();
 					break;
 
 				case "room":
 					var room = (int)e.Node.Tag;
 					area = (int)e.Node.Parent.Parent.Tag;
 
+					RomGraphics.LoadArea(area);
 					RomMap.LoadRoom(area, room);
+
+					CreateRoomImage(area);
 
 					Form.PropertyGrid.SelectedObject = new
 					{
@@ -296,6 +305,8 @@ namespace MetroidBrowser
 						Room.EnemyLocations
 					};
 
+					Form.SongPanel.Hide();
+					Form.ImagePanel.Show();
 					break;
 
 				case "structure":
@@ -306,9 +317,7 @@ namespace MetroidBrowser
 
 					Form.PropertyGrid.SelectedObject = new
 					{
-						Structure.Columns,
-						Rows = $"{Structure.Tiles.Length / Structure.Columns} (+{Structure.Tiles.Length % Structure.Columns})",
-						Structure.Tiles
+						Structure.Rows
 					};
 
 					break;
@@ -351,6 +360,130 @@ namespace MetroidBrowser
 			}
 		}
 
+		private static void CreateAreaImage()
+		{
+			var bitmap = new Bitmap(256 * 8, 2 * 8);
+
+			for (int page = 0; page < 2; page++)
+			{
+				for (int character = 0; character < 256; character++)
+				{
+					var x = (character * 8);
+
+					for (int row = 0; row < 8; row++)
+					{
+						var addressLow = (page * 0x1000) +
+							(character * 16) +
+							row;
+
+						var addressHigh = addressLow + 8;
+
+						var y = (page * 8) +
+							row;
+
+						var valueLow = Ppu.Vram[addressLow];
+						var valueHigh = Ppu.Vram[addressHigh];
+
+						for (int pixel = 0; pixel < 8; pixel++)
+						{
+							var value = ((valueLow >> (7 - pixel)) & 0x01) |
+								(((valueHigh >> (7 - pixel)) & 0x01) << 1);
+
+							var color = Color.FromArgb(value * 64, value * 64, value * 64);
+							//var color = Ppu.GetBackgroundColor(3, value);
+
+							bitmap.SetPixel(x + pixel, y, color);
+						}
+					}
+				}
+			}
+
+			var bitmap2 = new Bitmap(bitmap.Width * 16, bitmap.Height * 16);
+			using var graphics = Graphics.FromImage(bitmap2);
+
+			graphics.InterpolationMode = InterpolationMode.NearestNeighbor;
+			graphics.SmoothingMode = SmoothingMode.None;
+			graphics.PixelOffsetMode = PixelOffsetMode.Half;
+
+			graphics.DrawImage(bitmap, 0, 0, bitmap2.Width, bitmap2.Height);
+			Form.PictureBox.Image = bitmap2;
+		}
+
+		private static void CreateRoomImage(int area)
+		{
+			var bitmap = new Bitmap(2 * 8 * 16, 2 * 8 * 15);
+
+			for (int x = 0; x < bitmap.Width; x++)
+				for (int y = 0; y < bitmap.Height; y++)
+					bitmap.SetPixel(x, y, Color.Black);
+
+			for (int @object = 0; @object < Room.ObjectStructures.Length; @object++)
+			{
+				RomMap.LoadStructure(area, Room.ObjectStructures[@object]);
+
+				var location = Room.ObjectLocations[@object];
+				var x = location & 0x0f;
+				var y = location >> 4;
+
+				for (int row = 0; row < Structure.Rows.Length; row++)
+				{
+					if (y + row == 15)
+						break;
+
+					for (int column = 0; column < Structure.Rows[row].Length; column++)
+					{
+						if (x + column == 16)
+							break;
+
+						var tile = Structure.Tiles[Structure.Rows[row][column]];
+
+						for (int y2 = 0; y2 < 2; y2++)
+						{
+							for (int x2 = 0; x2 < 2; x2++)
+							{
+								var character = tile[(y2 * 2) + x2];
+								var palette = Room.ObjectColors[@object];
+
+								for (int y3 = 0; y3 < 8; y3++)
+								{
+									var page = 1;
+
+									var addressLow = (page * 0x1000) +
+										(character * 16) +
+										y3;
+
+									var addressHigh = addressLow + 8;
+
+									var valueLow = Ppu.Vram[addressLow];
+									var valueHigh = Ppu.Vram[addressHigh];
+
+									for (int x3 = 0; x3 < 8; x3++)
+									{
+										var value = ((valueLow >> (7 - x3)) & 0x01) |
+											(((valueHigh >> (7 - x3)) & 0x01) << 1);
+
+										var color = Ppu.GetBackgroundColor(palette, value);
+
+										bitmap.SetPixel((x * 16) + (16 * column) + (x2 * 8) + x3, (y * 16) + (16 * row) + (y2 * 8) + y3, color);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+
+			var bitmap2 = new Bitmap(bitmap.Width * 4, bitmap.Height * 4);
+			using var graphics = Graphics.FromImage(bitmap2);
+
+			graphics.InterpolationMode = InterpolationMode.NearestNeighbor;
+			graphics.SmoothingMode = SmoothingMode.None;
+			graphics.PixelOffsetMode = PixelOffsetMode.Half;
+
+			graphics.DrawImage(bitmap, 0, 0, bitmap2.Width, bitmap2.Height);
+			Form.PictureBox.Image = bitmap2;
+		}
+
 		private static void CreateMapImage()
 		{
 			var bitmap = new Bitmap(32 * 32, 32 * 32);
@@ -358,6 +491,7 @@ namespace MetroidBrowser
 			using var graphics = Graphics.FromImage(bitmap);
 			graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
 			graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+			graphics.PixelOffsetMode = PixelOffsetMode.Half;
 
 			var font = SystemFonts.DialogFont;
 			var brush = SystemBrushes.ControlText;
@@ -366,7 +500,7 @@ namespace MetroidBrowser
 			{
 				for (int x = 0; x < RomMap.MapWidth; x++)
 				{
-					graphics.DrawString(Map.Rooms[x, y].ToString("X2"), font, brush, x * 32, y * 32);
+					graphics.DrawString(Map.Rooms[x, y].ToString(), font, brush, x * 32, y * 32);
 				}
 			}
 
@@ -379,6 +513,7 @@ namespace MetroidBrowser
 
 			RomMap.Load();
 			RomSongs.Load();
+			RomGraphics.Load();
 		}
 
 		private static void AddRomNode()

@@ -12,6 +12,10 @@ namespace MetroidBrowser
 
 		internal const int AreaCount = 5;
 		internal const int AreaAddress = 0x9598;
+		internal const int AreaBaseDamageAddress = 0x95CE;
+		internal const int AreaMusicAddress = 0x95CD;
+		internal const int AreaSpecialRoomAddress = 0x95D0;
+		internal const int AreaStartPositionAddress = 0x95D7;
 
 		internal const int RoomCount = 256;
 
@@ -67,7 +71,8 @@ namespace MetroidBrowser
 			var structures = new List<int>();
 			var colors = new List<int>();
 
-			while (Rom.Contents[address] != 0xFD)
+			while (Rom.Contents[address] != 0xFD &&
+				Rom.Contents[address] != 0xFF)
 			{
 				locations.Add(Rom.Contents[address++]);
 				structures.Add(Rom.Contents[address++]);
@@ -78,19 +83,22 @@ namespace MetroidBrowser
 			Room.ObjectStructures = structures.ToArray();
 			Room.ObjectColors = colors.ToArray();
 
-			address++;
-
 			Room.Doors = new int[] { -1, -1 };
 
-			while (Rom.Contents[address] == 0x02)
+			if (Rom.Contents[address] == 0xFD)
 			{
 				address++;
-				var door = Rom.Contents[address++];
 
-				var index = door >> 4 - 0x0a;
-				var type = door & 0x0F;
+				while (Rom.Contents[address] == 0x02)
+				{
+					address++;
+					var door = Rom.Contents[address++];
 
-				Room.Doors[index] = type;
+					var index = door >> 4 - 0x0a;
+					var type = door & 0x0F;
+
+					Room.Doors[index] = type;
+				}
 			}
 
 			var sprites = new List<int>();
@@ -117,14 +125,41 @@ namespace MetroidBrowser
 
 			address = Rom.Address(AreaBanks[area], address);
 
-			Structure.Columns = Rom.Contents[address++];
-
-			var tiles = new List<int>();
+			var rows = new List<int[]>();
 
 			while (Rom.Contents[address] != 0xFF)
-				tiles.Add(Rom.Contents[address++]);
+			{
+				var count = Rom.Contents[address++];
 
-			Structure.Tiles = tiles.ToArray();
+				var columns = new int[count];
+
+				for (var x = 0; x < count; x++)
+				{
+					columns[x] = Rom.Contents[address++];
+
+					if (columns[x] == 0)
+						columns[x] = 16;
+				}
+
+				rows.Add(columns.ToArray());
+			}
+
+			Structure.Rows = rows.ToArray();
+
+			address = Rom.Address(AreaBanks[area], AreaMacros[area]);
+
+			for (int x = 0; x < 256; x++)
+			{
+				var characters = new int[]
+				{
+					Rom.Contents[address++],
+					Rom.Contents[address++],
+					Rom.Contents[address++],
+					Rom.Contents[address++]
+				};
+
+				Structure.Tiles[x] = characters;
+			}
 		}
 
 		internal static readonly string[] AreaNames = new string[]

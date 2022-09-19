@@ -2,7 +2,8 @@
 {
 	internal class Structure
 	{
-		internal static int Columns;
-		internal static int[] Tiles = Array.Empty<int>();
+		internal static int[][] Rows = Array.Empty<int[]>();
+
+		public static int[][] Tiles = new int[256][];
 	}
 }
